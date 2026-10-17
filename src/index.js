@@ -25,6 +25,21 @@ bot.command('help', async (ctx) => {
       'Northline — заявки на digital-услуги.',
       '/start — новая заявка',
       '/cancel — отменить текущий сценарий',
+      '/myid — показать ваш Telegram chat id (для MANAGER_CHAT_IDS в .env)',
+    ].join('\n')
+  );
+});
+
+bot.command('myid', async (ctx) => {
+  const id = ctx.chat?.id;
+  await ctx.reply(
+    [
+      `Ваш chat id: ${id}`,
+      '',
+      'Вставьте его в .env:',
+      `MANAGER_CHAT_IDS=${id}`,
+      '',
+      'Потом перезапустите бота. Чтобы сменить менеджера — укажите другой id.',
     ].join('\n')
   );
 });
@@ -41,8 +56,13 @@ bot.launch({ dropPendingUpdates: true }).catch((err) => {
   process.exit(1);
 });
 
+const managers =
+  config.managerChatIds.length > 0
+    ? config.managerChatIds.join(', ')
+    : 'не задан (только консоль; /myid → MANAGER_CHAT_IDS)';
+
 process.stdout.write(
-  `[bot] Northline запущен (${who}). Заявки печатаются в эту консоль.\n`
+  `[bot] Northline запущен (${who}). Менеджеры: ${managers}\n`
 );
 
 process.once('SIGINT', () => bot.stop('SIGINT'));

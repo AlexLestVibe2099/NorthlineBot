@@ -8,7 +8,7 @@ import {
   serviceKeyboard,
   startKeyboard,
 } from './keyboards.js';
-import { formatClientSummary, logLeadCard } from './lead.js';
+import { formatClientSummary, logLeadCard, notifyManagers } from './lead.js';
 
 const ABOUT_TEXT = [
   'Northline — digital-студия для бизнеса.',
@@ -141,10 +141,13 @@ export const leadWizard = new Scenes.WizardScene(
     ctx.wizard.state.lead.name = text;
     const lead = ctx.wizard.state.lead;
 
-    logLeadCard(lead, {
+    const meta = {
       telegramId: ctx.from?.id,
       telegramUsername: ctx.from?.username,
-    });
+    };
+
+    logLeadCard(lead, meta);
+    await notifyManagers(ctx.telegram, lead, meta);
 
     await ctx.reply(formatClientSummary(lead));
     await ctx.reply('Чтобы отправить ещё одну заявку — /start');

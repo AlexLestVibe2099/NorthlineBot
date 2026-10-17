@@ -19,6 +19,7 @@ copy .env.example .env
 ```env
 BOT_TOKEN=123456:ABC...
 BOT_USERNAME=YourBotUsername
+MANAGER_CHAT_IDS=
 ```
 
 5. Установка и запуск:
@@ -30,8 +31,11 @@ npm start
 
 Для автоперезапуска при правках: `npm run dev`.
 
-6. Откройте бота в Telegram (`t.me/<BOT_USERNAME>`), нажмите `/start`, пройдите сценарий.  
-   Готовая карточка появится **в этом терминале**.
+6. Напишите боту `/myid`, вставьте число в `MANAGER_CHAT_IDS`, перезапустите бота.  
+   Менеджер должен хотя бы раз нажать `/start`.
+
+7. Откройте бота в Telegram (`t.me/<BOT_USERNAME>`), пройдите сценарий.  
+   Карточка придёт менеджеру в Telegram и в консоль.
 
 ## Сценарий
 
@@ -57,6 +61,5 @@ VITE_BOT_URL=https://t.me/YourBotUsername
 
 ## Дальше (не в текущем скоупе)
 
-- Уведомление менеджеру в Telegram вместо (или вместе с) `console.log`
 - Деплой на VPS
 - База заявок
