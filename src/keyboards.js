@@ -3,7 +3,23 @@ import { Markup } from 'telegraf';
 export const startKeyboard = () =>
   Markup.inlineKeyboard([
     [Markup.button.callback('Оставить заявку', 'lead:start')],
-    [Markup.button.callback('Что вы делаете?', 'lead:about')],
+    [Markup.button.callback('Что мы делаем', 'lead:about')],
+    [Markup.button.callback('Сроки и формат', 'lead:timing')],
+  ]);
+
+export const aboutKeyboard = () =>
+  Markup.inlineKeyboard([
+    [Markup.button.callback('Лендинги и сайты', 'about:landing')],
+    [Markup.button.callback('Telegram-боты', 'about:bot')],
+    [Markup.button.callback('Интеграции', 'about:auto')],
+    [Markup.button.callback('Оставить заявку', 'lead:start')],
+    [Markup.button.callback('« Назад', 'lead:menu')],
+  ]);
+
+export const backToMenuKeyboard = () =>
+  Markup.inlineKeyboard([
+    [Markup.button.callback('Оставить заявку', 'lead:start')],
+    [Markup.button.callback('« Назад в меню', 'lead:menu')],
   ]);
 
 export const serviceKeyboard = () =>

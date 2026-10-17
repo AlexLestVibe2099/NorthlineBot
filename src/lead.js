@@ -1,8 +1,10 @@
 import { config } from './config.js';
 
 export function formatLeadLines(lead, meta = {}) {
+  const heatLine = lead.heat?.label ? `Статус:  ${lead.heat.label}` : null;
   return [
     `Время:   ${new Date().toLocaleString('ru-RU')}`,
+    heatLine,
     meta.telegramId ? `TG id:   ${meta.telegramId}` : null,
     meta.telegramUsername ? `TG user: @${meta.telegramUsername}` : null,
     `Имя:     ${lead.name || '—'}`,
@@ -27,11 +29,14 @@ export function logLeadCard(lead, meta = {}) {
 }
 
 export function formatManagerCard(lead, meta = {}) {
-  return [
-    '🆕 Новая заявка · Northline',
-    '',
-    ...formatLeadLines(lead, meta),
-  ].join('\n');
+  const title =
+    lead.heat?.key === 'hot'
+      ? '🔥 Горячая заявка · Northline'
+      : lead.heat?.key === 'warm'
+        ? '🌤 Тёплая заявка · Northline'
+        : '🆕 Заявка · Northline';
+
+  return [title, '', ...formatLeadLines(lead, meta)].join('\n');
 }
 
 export function formatClientSummary(lead) {

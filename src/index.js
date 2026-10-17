@@ -23,7 +23,7 @@ bot.command('help', async (ctx) => {
   await ctx.reply(
     [
       'Northline — заявки на digital-услуги.',
-      '/start — новая заявка',
+      '/start — меню: заявка, что делаем, сроки',
       '/cancel — отменить текущий сценарий',
       '/myid — показать ваш Telegram chat id (для MANAGER_CHAT_IDS в .env)',
     ].join('\n')

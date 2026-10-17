@@ -1,31 +1,81 @@
 import { Scenes } from 'telegraf';
+import { ABOUT_DETAILS, ABOUT_TEXT, TIMING_TEXT } from './content.js';
 import {
   BUDGET_LABELS,
   DEADLINE_LABELS,
   SERVICE_LABELS,
+  aboutKeyboard,
+  backToMenuKeyboard,
   budgetKeyboard,
   deadlineKeyboard,
   serviceKeyboard,
   startKeyboard,
 } from './keyboards.js';
 import { formatClientSummary, logLeadCard, notifyManagers } from './lead.js';
-
-const ABOUT_TEXT = [
-  'Northline — digital-студия для бизнеса.',
-  'Делаем лендинги и сайты, Telegram-ботов и простые интеграции под заявки и процессы.',
-  '',
-  'Нажмите «Оставить заявку» — ответите на несколько вопросов, менеджер получит готовую карточку.',
-].join('\n');
+import { qualifyLead } from './qualify.js';
 
 function emptyLead() {
   return {
     service: '',
     task: '',
     deadline: '',
+    deadlineKey: '',
     budget: '',
+    budgetKey: '',
     contact: '',
     name: '',
+    heat: null,
   };
+}
+
+async function handleMenuCallbacks(ctx) {
+  const data = ctx.callbackQuery?.data;
+  if (!data) return false;
+
+  if (data === 'lead:menu') {
+    await ctx.answerCbQuery();
+    await ctx.reply(
+      'Чем помочь? Можно узнать о студии или сразу оставить заявку.',
+      startKeyboard()
+    );
+    return true;
+  }
+
+  if (data === 'lead:about') {
+    await ctx.answerCbQuery();
+    await ctx.reply(ABOUT_TEXT, aboutKeyboard());
+    return true;
+  }
+
+  if (data === 'lead:timing') {
+    await ctx.answerCbQuery();
+    await ctx.reply(TIMING_TEXT, backToMenuKeyboard());
+    return true;
+  }
+
+  if (data.startsWith('about:')) {
+    await ctx.answerCbQuery();
+    const key = data.slice(6);
+    const text = ABOUT_DETAILS[key];
+    if (text) {
+      await ctx.reply(text, aboutKeyboard());
+    } else {
+      await ctx.reply(ABOUT_TEXT, aboutKeyboard());
+    }
+    return true;
+  }
+
+  if (data === 'lead:start') {
+    await ctx.answerCbQuery();
+    ctx.wizard.state.lead = emptyLead();
+    ctx.wizard.state.awaitingCustomDeadline = false;
+    // Шаг выбора услуги (индекс 2)
+    ctx.wizard.selectStep(2);
+    await ctx.reply('Какая услуга нужна?', serviceKeyboard());
+    return true;
+  }
+
+  return false;
 }
 
 export const leadWizard = new Scenes.WizardScene(
@@ -35,28 +85,21 @@ export const leadWizard = new Scenes.WizardScene(
     await ctx.reply(
       [
         'Привет! Я помогу оставить заявку в Northline.',
-        'Ответьте на несколько вопросов — менеджер получит готовую карточку.',
+        'Можно сначала посмотреть, чем занимаемся и как работаем — или сразу заполнить заявку.',
       ].join('\n'),
       startKeyboard()
     );
     return ctx.wizard.next();
   },
   async (ctx) => {
-    if (ctx.callbackQuery?.data === 'lead:about') {
-      await ctx.answerCbQuery();
-      await ctx.reply(ABOUT_TEXT, startKeyboard());
-      return;
-    }
-    if (ctx.callbackQuery?.data !== 'lead:start') {
-      if (ctx.callbackQuery) await ctx.answerCbQuery();
-      await ctx.reply('Нажмите «Оставить заявку», чтобы продолжить.', startKeyboard());
-      return;
-    }
-    await ctx.answerCbQuery();
-    await ctx.reply('Какая услуга нужна?', serviceKeyboard());
-    return ctx.wizard.next();
+    if (await handleMenuCallbacks(ctx)) return;
+
+    if (ctx.callbackQuery) await ctx.answerCbQuery();
+    await ctx.reply('Выберите пункт меню или нажмите «Оставить заявку».', startKeyboard());
   },
   async (ctx) => {
+    if (await handleMenuCallbacks(ctx)) return;
+
     const data = ctx.callbackQuery?.data;
     if (!data?.startsWith('svc:')) {
       if (ctx.callbackQuery) await ctx.answerCbQuery();
@@ -87,6 +130,7 @@ export const leadWizard = new Scenes.WizardScene(
         return;
       }
       ctx.wizard.state.lead.deadline = text;
+      ctx.wizard.state.lead.deadlineKey = 'custom';
       ctx.wizard.state.awaitingCustomDeadline = false;
       await ctx.reply('Какой бюджет рассматриваете?', budgetKeyboard());
       return ctx.wizard.next();
@@ -105,6 +149,7 @@ export const leadWizard = new Scenes.WizardScene(
       await ctx.reply('Напишите свой срок текстом.');
       return;
     }
+    ctx.wizard.state.lead.deadlineKey = key;
     ctx.wizard.state.lead.deadline = DEADLINE_LABELS[key] || key;
     await ctx.reply('Какой бюджет рассматриваете?', budgetKeyboard());
     return ctx.wizard.next();
@@ -118,6 +163,7 @@ export const leadWizard = new Scenes.WizardScene(
     }
     await ctx.answerCbQuery();
     const key = data.slice(3);
+    ctx.wizard.state.lead.budgetKey = key;
     ctx.wizard.state.lead.budget = BUDGET_LABELS[key] || key;
     await ctx.reply('Как с вами связаться? Telegram @username или телефон.');
     return ctx.wizard.next();
@@ -138,8 +184,9 @@ export const leadWizard = new Scenes.WizardScene(
       await ctx.reply('Напишите, как к вам обращаться.');
       return;
     }
-    ctx.wizard.state.lead.name = text;
     const lead = ctx.wizard.state.lead;
+    lead.name = text;
+    lead.heat = qualifyLead(lead.deadlineKey, lead.budgetKey);
 
     const meta = {
       telegramId: ctx.from?.id,
